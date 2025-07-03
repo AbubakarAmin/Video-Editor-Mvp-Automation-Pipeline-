@@ -63,7 +63,7 @@ def generate_and_save_multi_speaker_audio(
         os.makedirs(output_directory, exist_ok=True)
 
         # Generate a unique filename with .wav extension
-        unique_filename = f"gemini_tts_{uuid.uuid4().hex}.wav"
+        unique_filename = f"gemini_tts_{uuid.uuid4().hex[:8]}.wav"
         output_filepath = os.path.join(output_directory, unique_filename)
 
         # Save the audio data using the helper function

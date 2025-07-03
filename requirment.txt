@@ -1,6 +1,0 @@
-google-genai
-python-dotenv
-torch 
-torchvision 
-torchaudio
-openai-whisper
