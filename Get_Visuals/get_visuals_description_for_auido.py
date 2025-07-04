@@ -3,7 +3,6 @@ import os
 import uuid
 from PIL import Image
 from io import BytesIO
-from google import genai
 from google.genai import types
 from pydantic import BaseModel
 #defining schema for api repsonse to get structred data in json
@@ -30,7 +29,7 @@ def generate_images_from_visuals(client,json_data, output_folder):
             # Request image generation from Gemini
             response = client.models.generate_content(
                 model="gemini-2.0-flash-preview-image-generation",
-                contents=visual_description,
+                contents=f"Genrate High Quality Images{visual_description}",
                 config=types.GenerateContentConfig(
                     response_modalities=['TEXT', 'IMAGE']
                 )
@@ -60,13 +59,13 @@ def generate_images_from_visuals(client,json_data, output_folder):
 
 def get_visual(api_key: str,audio_file_path: str,visual_output_path:str="Assets/Genrated_Visuals"):
     client = genai.Client(api_key=api_key)
-    print("Sening Audio To api for visual Json")
+    print("Sending Audio To api for visual Json")
     myfile = client.files.upload(file=audio_file_path)
 
 
     response = client.models.generate_content(
             model="gemini-2.5-flash", contents = ["""
-    You are a world-class cinematic director and visual storyteller. Your task is to convert the following audio script into a series of vivid, well-described visual scenes that will be used to generate images using an AI image generation model. 
+    You are a world-class cinematic director and visual storyteller.Your pace is fast and you add a touch of oyour own in direction sharp cuts and make your videos liek magnet which make people stick to it chnage frame rapidly, Your task is to convert the following audio script into a series of vivid, well-described visual scenes that will be used to generate images using an AI image generation model. 
 
     Generate a structure that divides the script into time-based segments, and for each segment, provide a **highly descriptive, realistic, and coherent scene**. The visual descriptions must:
 
@@ -76,7 +75,7 @@ def get_visual(api_key: str,audio_file_path: str,visual_output_path:str="Assets/
     - Be grounded in reality (avoid fantasy or surrealism unless clearly implied).
     - Be camera-aware: use phrases like “wide aerial shot,” “close-up of,” “camera slowly pans over,” “over-the-shoulder view, and more that you think are good” etc.
 
-    These visuals will be used to generate AI images **frame-by-frame** and stitched into a cohesive video, so **maintaining visual and thematic continuity** is essential again maintaining continuity is must.
+    These visuals will be used to generate AI images **frame-by-frame** and stitched into a cohesive video, so **maintaining visual and thematic continuity** is essential again maintaining continuity is must.THe visuals **must** be in sync with audio
     """,myfile]
     ,
     config={
