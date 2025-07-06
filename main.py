@@ -1,14 +1,19 @@
 from Genrate_Script.genrate_mulit_speaker_script import genrate_multi_speaker_script
 from TTS.genrate_audio import generate_and_save_multi_speaker_audio
 from Get_Visuals.get_visuals_description_for_auido import get_visual
-from Edit_Final_Video.edit_final_video import create_video_from_images_and_audio
+from Edit_Final_Video.edit_final_video import create_video_from_video_clips_and_audio
 from dotenv import load_dotenv
 import os
 load_dotenv()
 api_key=os.getenv("GEMINI_API_KEY") 
 audience=input("Target Audience: ")
 topic=input("Enter your topic : ")
-
+orientation=input("orientation(landscape=1,potrait=2,square=3):  ")
+orientation= (
+    "landscape" if orientation == '1' else
+    "square" if orientation== '3' else
+    'portrait'
+)
 
 
 script =genrate_multi_speaker_script(api_key=api_key,audience=audience,topic=topic) 
@@ -21,5 +26,13 @@ audio_file_address = generate_and_save_multi_speaker_audio(
         model_name="gemini-2.5-flash-preview-tts" # Using the 'flash' model for speed
     )
 
-json_video=get_visual(api_key=api_key,audio_file_path=audio_file_address,visual_output_path="Assets/Genrated_Visuals")
-create_video_from_images_and_audio(json_data=json_video, audio_path=audio_file_address, output_directory="Assets/Final_Video")
+json_video=get_visual(api_key=api_key,
+                      audio_file_path=audio_file_address,
+                      orientation=orientation
+                      )
+
+create_video_from_video_clips_and_audio(json_data=json_video,
+                                        audio_path=audio_file_address,
+                                        orientation=orientation
+                                        )
+

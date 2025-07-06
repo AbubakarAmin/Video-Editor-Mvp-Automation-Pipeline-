@@ -8,8 +8,7 @@ class script_in_json(BaseModel):
    
 
 
-def genrate_multi_speaker_script(api_key:str,audience:str,topic:str):
- 
+def genrate_multi_speaker_script(api_key:str,audience:str,topic:str): 
      client = genai.Client(api_key=api_key)
      print("Writing Script........")
      response = client.models.generate_content(
