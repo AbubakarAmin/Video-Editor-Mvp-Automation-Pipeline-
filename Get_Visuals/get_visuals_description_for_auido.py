@@ -77,7 +77,9 @@ def get_visual(api_key: str, audio_file_path: str,orientation:str, visual_output
               Example: "sunset over mountains", "people walking on street", "closeup of crying woman".
 
             Avoid full sentences. Only return brief search tags.
-
+            Keep video fast paced.
+            You **Must** match the length of audio in your timestamps.
+            Visuals **MUST** be in sync with audio
             Return a structured JSON list.
             """,
             myfile

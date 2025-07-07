@@ -64,11 +64,27 @@ def create_video_from_video_clips_and_audio(json_data, audio_path: str, orientat
         raise ValueError("No valid video clips found.")
 
     final_video = concatenate_videoclips(clips, method="compose")
-    final_video = final_video.set_audio(AudioFileClip(audio_path))
+    final_audio = AudioFileClip(audio_path)
+    audio_duration = final_audio.duration
+    video_duration = final_video.duration
+
+    # If video is shorter than audio, pad by freezing last frame
+    if video_duration < audio_duration:
+        last_frame = final_video.to_ImageClip().set_duration(audio_duration - video_duration)
+        final_video = concatenate_videoclips([final_video, last_frame], method="compose")
+    # If video is longer, trim it
+    elif video_duration > audio_duration:
+        final_video = final_video.subclip(0, audio_duration)
+
+    # Set audio and ensure durations match
+    final_video = final_video.set_audio(final_audio.set_duration(audio_duration))
 
     os.makedirs(output_directory, exist_ok=True)
     output_path = os.path.join(output_directory, f"final_video_{uuid.uuid4().hex[:8]}.mp4")
 
     final_video.write_videofile(output_path, codec="libx264", audio_codec="aac", fps=24)
+    final_video.close()
+    final_audio.close()
+
 
     return output_path

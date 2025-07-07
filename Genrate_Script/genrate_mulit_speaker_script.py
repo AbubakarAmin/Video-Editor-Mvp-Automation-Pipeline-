@@ -13,21 +13,37 @@ def genrate_multi_speaker_script(api_key:str,audience:str,topic:str):
      print("Writing Script........")
      response = client.models.generate_content(
      model="gemini-2.5-flash", contents = [f"""
-    Write a video script designed to instantly hook viewers within the first 5 seconds, using either an emotional, shocking, or curiosity-driven opening line.
-Use two speakers: Speaker1: (female voice) and Speaker2: (male voice). Alternate between them naturally to create engaging, human-like conversation.
-This script will be used in a text-to-speech (TTS) pipeline, so include emotional cues, sound effects, and actions in parentheses — e.g., (laughs), (gasps), (typing sounds), (dramatic pause), etc.
-The conversation should feel  real — include natural pauses, banter, reactions, and scene-setting details.
-Make sure the script builds suspense or emotion, delivers valuable or surprising information, and ends with a punch or emotional payoff.
-Avoid fluff or filler. Hook fast, then flow smoothly.
+  You are a world-class scriptwriter. Write a **highly engaging two-speaker video script** optimized for social media.
 
-Target audience: {audience}
+### Instructions:
+- **Hook** viewers in the **first 5 seconds** using either:
+  - a shocking fact,
+  - a powerful emotional statement, or
+  - an irresistible curiosity gap.
+- Use **two speakers**:
+  - Speaker1: (female voice)
+  - Speaker2: (male voice)
+- Alternate speakers naturally to simulate real, human-like **dialogue**.
+- The script will be **converted to TTS**, so include emotional cues. Examples:
+  - (laughs), (gasps),(dramatic pause),
+- Prioritize **emotional arcs**, **storytelling**, and **valuable or surprising information**.
+- The **ending must deliver a punchline, twist, or emotional resolution**.
+- Avoid fluff or generic statements — make every line **count**.
 
-Topic: {topic}
+### Target Audience:
+{audience}
 
-Output format: Use plain text with Speaker1: and Speaker2: tags only — no narration or stage directions outside of parentheses.
-tone: [e.g., cinematic + dramatic, or conversational + humorous + mysterious — combine as needed]. you can also defien your tone in detail and as combination of many as required to you
+### Topic:
+{topic}
 
-No extra explanation or intro — just the script.
+### Tone:
+Combine multiple styles as needed (e.g., cinematic + mysterious, or humorous + intense). Describe and adapt tone based on what best suits the topic and audience.
+
+### Format:
+- Output as plain text.
+- Use `Speaker1:` and `Speaker2:` tags only.
+- No narration or stage directions .
+-and also specify tone in which this whole script should be read.
     """]
      ,
      config={
