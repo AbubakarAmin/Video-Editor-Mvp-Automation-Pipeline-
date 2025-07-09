@@ -67,10 +67,13 @@ def get_valid_token():
     except ValueError:
         expires_at = 0
 
-    if not token or not refresh_token or time.time() > expires_at:
+    if not token or not refresh_token or not expires_at:
         print("🔁 Access token missing or expired. Authenticating...")
         code = launch_oauth_flow()
         token = exchange_code_for_tokens(code)
+    if  time.time() > expires_at:
+        token=refresh_access_token()
+
     return token
 
 

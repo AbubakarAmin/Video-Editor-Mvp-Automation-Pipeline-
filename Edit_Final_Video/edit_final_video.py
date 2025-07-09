@@ -93,7 +93,7 @@ def create_video_from_video_clips_and_audio(
                         sfx_trimmed = loop(sfx_clip, n=loops).subclip(0, scene_duration)
 
                     # Apply volume reduction and ensure exact duration
-                    sfx_trimmed = sfx_trimmed.volumex(0.4).set_duration(scene_duration)
+                    sfx_trimmed = sfx_trimmed.volumex(0.5).set_duration(scene_duration)
                     
                     # Store the SFX clip and its intended start time
                     sfx_data_for_composite.append({
@@ -176,6 +176,20 @@ def create_video_from_video_clips_and_audio(
         composite_audio = composite_audio.set_duration(final_video_duration)
         final_video = final_video.set_audio(composite_audio)
         
+        # Final sync check - ensure audio and video durations match exactly
+        video_dur = final_video.duration
+        audio_dur = final_video.audio.duration
+        
+        if abs(video_dur - audio_dur) > 0.01:  # Allow 0.01s tolerance
+            print(f"Duration mismatch detected: Video={video_dur:.3f}s, Audio={audio_dur:.3f}s")
+            
+            if video_dur > audio_dur:
+                print("Trimming video to match audio duration...")
+                final_video = final_video.subclip(0, audio_dur)
+            else:
+                print("Trimming audio to match video duration...")
+                final_video = final_video.set_audio(final_video.audio.subclip(0, video_dur))
+        
     except Exception as e:
         print(f"Warning: Failed to create composite audio: {e}")
         print("Using only main audio track...")
@@ -183,6 +197,18 @@ def create_video_from_video_clips_and_audio(
         main_audio_safe = main_audio_clip.subclip(0, min(main_audio_clip.duration, final_video_duration))
         main_audio_safe = main_audio_safe.set_duration(final_video_duration)
         final_video = final_video.set_audio(main_audio_safe)
+        
+        # Final sync check for fallback case
+        video_dur = final_video.duration
+        audio_dur = final_video.audio.duration
+        
+        if abs(video_dur - audio_dur) > 0.01:
+            print(f"Fallback duration mismatch: Video={video_dur:.3f}s, Audio={audio_dur:.3f}s")
+            
+            if video_dur > audio_dur:
+                final_video = final_video.subclip(0, audio_dur)
+            else:
+                final_video = final_video.set_audio(final_video.audio.subclip(0, video_dur))
 
     # Export with standard settings
     os.makedirs(output_directory, exist_ok=True)
@@ -209,7 +235,7 @@ def create_video_from_video_clips_and_audio(
             codec="libx264",
             audio_codec="aac",
             fps=24,
-            preset="ultrafast",
+            preset="fast",
             threads=1,
             temp_audiofile='temp-audio.m4a',
             remove_temp=True
