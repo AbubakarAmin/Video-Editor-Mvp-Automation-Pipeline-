@@ -6,7 +6,7 @@ from moviepy.video.fx.all import loop, crop
 from datetime import datetime
 import os
 import uuid
-import numpy as np # Import numpy for potential use with audio arrays
+import numpy as np
 
 def time_to_seconds(t: str) -> float:
     """Converts a time string (MM:SS or MM:SS.sss) to total seconds."""
@@ -79,24 +79,30 @@ def create_video_from_video_clips_and_audio(
             processed_clip = processed_clip.set_duration(scene_duration).fadein(0.3).fadeout(0.3)
             video_clips_for_concat.append(processed_clip)
 
-            # Load and process SFX (optional)
-            if sfx_path:
-                if not os.path.exists(sfx_path):
-                    print(f"Warning: SFX file '{sfx_path}' for scene {i+1} not found, skipping.")
-                else:
+            # Load and process SFX (optional) with improved error handling
+            if sfx_path and os.path.exists(sfx_path):
+                try:
                     sfx_clip = AudioFileClip(sfx_path)
                     all_audio_objects.append(sfx_clip)
-
+                    
+                    # Ensure SFX duration matches scene duration
                     if sfx_clip.duration >= scene_duration:
                         sfx_trimmed = sfx_clip.subclip(0, scene_duration)
                     else:
                         loops = int(scene_duration // sfx_clip.duration) + 1
                         sfx_trimmed = loop(sfx_clip, n=loops).subclip(0, scene_duration)
 
-                    sfx_trimmed = sfx_trimmed.volumex(0.4)
+                    # Apply volume reduction and ensure exact duration
+                    sfx_trimmed = sfx_trimmed.volumex(0.4).set_duration(scene_duration)
                     
                     # Store the SFX clip and its intended start time
-                    sfx_data_for_composite.append({"clip": sfx_trimmed, "start": current_video_clip_start_time})
+                    sfx_data_for_composite.append({
+                        "clip": sfx_trimmed, 
+                        "start": current_video_clip_start_time
+                    })
+                        
+                except Exception as e:
+                    print(f"Warning: Failed to load SFX file '{sfx_path}' for scene {i+1}: {e}")
 
             current_video_clip_start_time += scene_duration
 
@@ -107,19 +113,21 @@ def create_video_from_video_clips_and_audio(
     if not video_clips_for_concat:
         raise ValueError("No valid video clips found.")
 
+    # Concatenate all video clips
     final_video = concatenate_videoclips(video_clips_for_concat, method="compose")
 
-    # Load main voiceover
+    # Load main voiceover with error handling
     try:
         main_audio_clip = AudioFileClip(audio_path)
         all_audio_objects.append(main_audio_clip)
+            
     except Exception as e:
         raise IOError(f"Failed to load main audio '{audio_path}': {e}")
 
     video_duration = final_video.duration
     audio_duration = main_audio_clip.duration
 
-    # If audio longer than video, pad video with last frame
+    # Sync video and audio durations
     if video_duration < audio_duration:
         print("Video shorter than audio — padding with frozen frame...")
         # Ensure last_frame has the correct FPS to avoid audio/video sync issues
@@ -129,39 +137,93 @@ def create_video_from_video_clips_and_audio(
         print("Video longer than audio — trimming video...")
         final_video = final_video.subclip(0, audio_duration)
 
-    # Now, set the start times for SFX clips relative to the concatenated video
-    sfx_clips_with_starts = []
-    for sfx_item in sfx_data_for_composite:
-        sfx_clips_with_starts.append(sfx_item["clip"].set_start(sfx_item["start"]))
+    # Update video duration after adjustment
+    final_video_duration = final_video.duration
 
-    # Combine all audio tracks
-    main_audio_clip = main_audio_clip.set_duration(final_video.duration)
-    # Add the main audio clip to the list for composite
-    sfx_clips_with_starts.append(main_audio_clip)
+    # THE KEY FIX: Create composite audio more carefully
+    try:
+        # Start with main audio - set exact duration first
+        main_audio_final = main_audio_clip.subclip(0, min(main_audio_clip.duration, final_video_duration))
+        main_audio_final = main_audio_final.set_duration(final_video_duration)
+        
+        # Process SFX clips with strict bounds checking
+        valid_sfx_clips = []
+        for sfx_item in sfx_data_for_composite:
+            sfx_clip = sfx_item["clip"]
+            start_time = sfx_item["start"]
+            
+            # Skip if start time is beyond video duration
+            if start_time >= final_video_duration:
+                continue
+                
+            # Calculate exact end time and duration
+            max_duration = final_video_duration - start_time
+            sfx_duration = min(sfx_clip.duration, max_duration)
+            
+            # Create properly bounded SFX clip
+            if sfx_duration > 0:
+                bounded_sfx = sfx_clip.subclip(0, sfx_duration).set_start(start_time)
+                valid_sfx_clips.append(bounded_sfx)
+        
+        # Create composite audio with main audio + valid SFX clips
+        if valid_sfx_clips:
+            all_audio_clips = [main_audio_final] + valid_sfx_clips
+            composite_audio = CompositeAudioClip(all_audio_clips)
+        else:
+            composite_audio = main_audio_final
+            
+        # Ensure composite audio has exact duration
+        composite_audio = composite_audio.set_duration(final_video_duration)
+        final_video = final_video.set_audio(composite_audio)
+        
+    except Exception as e:
+        print(f"Warning: Failed to create composite audio: {e}")
+        print("Using only main audio track...")
+        # Fallback to main audio only
+        main_audio_safe = main_audio_clip.subclip(0, min(main_audio_clip.duration, final_video_duration))
+        main_audio_safe = main_audio_safe.set_duration(final_video_duration)
+        final_video = final_video.set_audio(main_audio_safe)
 
-    composite_audio = CompositeAudioClip(sfx_clips_with_starts).set_duration(final_video.duration)
-    final_video = final_video.set_audio(composite_audio)
-
-    # Export
+    # Export with standard settings
     os.makedirs(output_directory, exist_ok=True)
     output_path = os.path.join(output_directory, f"final_video_{uuid.uuid4().hex[:8]}.mp4")
     print(f"Rendering video: {output_path}")
 
-    final_video.write_videofile(
-        output_path,
-        codec="libx264",
-        audio_codec="aac",
-        fps=24,
-        preset="medium",
-        threads=os.cpu_count()
-    )
+    try:
+        final_video.write_videofile(
+            output_path,
+            codec="libx264",
+            audio_codec="aac",
+            fps=24,
+            preset="medium",
+            threads=os.cpu_count(),
+            verbose=False,
+            logger=None
+        )
+    except Exception as e:
+        print(f"Error during video export: {e}")
+        # Try simpler export settings
+        print("Trying simplified export settings...")
+        final_video.write_videofile(
+            output_path,
+            codec="libx264",
+            audio_codec="aac",
+            fps=24,
+            preset="ultrafast",
+            threads=1,
+            temp_audiofile='temp-audio.m4a',
+            remove_temp=True
+        )
 
     # Cleanup resources
-    final_video.close()
-    for v in all_video_objects:
-        v.close()
-    for a in all_audio_objects:
-        a.close()
+    try:
+        final_video.close()
+        for v in all_video_objects:
+            v.close()
+        for a in all_audio_objects:
+            a.close()
+    except Exception as e:
+        print(f"Warning: Error during cleanup: {e}")
 
     print("✅ Video creation complete.")
     return output_path
