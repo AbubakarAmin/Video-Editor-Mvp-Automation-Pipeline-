@@ -1,6 +1,7 @@
 from Genrate_Script.genrate_mulit_speaker_script import genrate_multi_speaker_script
 from TTS.genrate_audio import generate_and_save_multi_speaker_audio
 from Get_Visuals.get_visuals_description_for_auido import get_visual
+from SFX.get_sfx_from_freesound import process_sfx_json_and_download
 from Edit_Final_Video.edit_final_video import create_video_from_video_clips_and_audio
 from dotenv import load_dotenv
 import os
@@ -30,6 +31,7 @@ json_video=get_visual(api_key=api_key,
                       audio_file_path=audio_file_address,
                       orientation=orientation
                       )
+json_video=process_sfx_json_and_download(json_video=json_video )
 
 create_video_from_video_clips_and_audio(json_data=json_video,
                                         audio_path=audio_file_address,
