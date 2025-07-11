@@ -93,7 +93,7 @@ def create_video_from_video_clips_and_audio(
                         sfx_trimmed = loop(sfx_clip, n=loops).subclip(0, scene_duration)
 
                     # Apply volume reduction and ensure exact duration
-                    sfx_trimmed = sfx_trimmed.volumex(0.5).set_duration(scene_duration)
+                    sfx_trimmed = sfx_trimmed.volumex(0.4).set_duration(scene_duration)
                     
                     # Store the SFX clip and its intended start time
                     sfx_data_for_composite.append({
@@ -140,106 +140,158 @@ def create_video_from_video_clips_and_audio(
     # Update video duration after adjustment
     final_video_duration = final_video.duration
 
-    # THE KEY FIX: Create composite audio more carefully
+    # FIXED: Create composite audio more carefully with proper timing validation
     try:
-        # Start with main audio - set exact duration first
-        main_audio_final = main_audio_clip.subclip(0, min(main_audio_clip.duration, final_video_duration))
+        # Start with main audio - ensure it doesn't exceed video duration
+        main_audio_duration = min(main_audio_clip.duration, final_video_duration)
+        main_audio_final = main_audio_clip.subclip(0, main_audio_duration)
+        
+        # CRITICAL FIX: Ensure main audio has exact duration to prevent timing issues
         main_audio_final = main_audio_final.set_duration(final_video_duration)
         
-        # Process SFX clips with strict bounds checking
+        # Process SFX clips with strict bounds checking and timing validation
         valid_sfx_clips = []
         for sfx_item in sfx_data_for_composite:
             sfx_clip = sfx_item["clip"]
             start_time = sfx_item["start"]
             
-            # Skip if start time is beyond video duration
-            if start_time >= final_video_duration:
+            # Skip if start time is beyond video duration or negative
+            if start_time >= final_video_duration or start_time < 0:
+                print(f"Skipping SFX clip with invalid start time: {start_time}")
                 continue
                 
             # Calculate exact end time and duration
             max_duration = final_video_duration - start_time
             sfx_duration = min(sfx_clip.duration, max_duration)
             
-            # Create properly bounded SFX clip
-            if sfx_duration > 0:
-                bounded_sfx = sfx_clip.subclip(0, sfx_duration).set_start(start_time)
-                valid_sfx_clips.append(bounded_sfx)
+            # CRITICAL FIX: Ensure SFX duration is positive and within bounds
+            if sfx_duration > 0.1:  # Minimum 0.1s duration to avoid timing issues
+                try:
+                    # Create properly bounded SFX clip with exact timing
+                    bounded_sfx = sfx_clip.subclip(0, sfx_duration)
+                    bounded_sfx = bounded_sfx.set_start(start_time)
+                    bounded_sfx = bounded_sfx.set_duration(sfx_duration)
+                    
+                    # ADDITIONAL FIX: Validate the SFX clip timing
+                    if bounded_sfx.start >= 0 and (bounded_sfx.start + bounded_sfx.duration) <= final_video_duration:
+                        valid_sfx_clips.append(bounded_sfx)
+                    else:
+                        print(f"Skipping SFX clip with invalid timing: start={bounded_sfx.start}, duration={bounded_sfx.duration}")
+                        
+                except Exception as e:
+                    print(f"Warning: Failed to process SFX clip: {e}")
+                    continue
         
         # Create composite audio with main audio + valid SFX clips
         if valid_sfx_clips:
+            print(f"Adding {len(valid_sfx_clips)} SFX clips to composite audio")
             all_audio_clips = [main_audio_final] + valid_sfx_clips
+            
+            # CRITICAL FIX: Create composite audio with proper duration constraints
             composite_audio = CompositeAudioClip(all_audio_clips)
+            composite_audio = composite_audio.set_duration(final_video_duration)
         else:
+            print("No valid SFX clips found, using main audio only")
             composite_audio = main_audio_final
             
-        # Ensure composite audio has exact duration
-        composite_audio = composite_audio.set_duration(final_video_duration)
+        # Set the audio to the video
         final_video = final_video.set_audio(composite_audio)
         
-        # Final sync check - ensure audio and video durations match exactly
+        # FINAL SYNC CHECK: Ensure audio and video durations match exactly
         video_dur = final_video.duration
         audio_dur = final_video.audio.duration
         
-        if abs(video_dur - audio_dur) > 0.01:  # Allow 0.01s tolerance
+        print(f"Final durations - Video: {video_dur:.3f}s, Audio: {audio_dur:.3f}s")
+        
+        if abs(video_dur - audio_dur) > 0.1:  # Allow 0.1s tolerance
             print(f"Duration mismatch detected: Video={video_dur:.3f}s, Audio={audio_dur:.3f}s")
             
-            if video_dur > audio_dur:
-                print("Trimming video to match audio duration...")
-                final_video = final_video.subclip(0, audio_dur)
-            else:
-                print("Trimming audio to match video duration...")
-                final_video = final_video.set_audio(final_video.audio.subclip(0, video_dur))
+            # Fix duration mismatch by trimming to the shorter duration
+            target_duration = min(video_dur, audio_dur)
+            print(f"Trimming both to {target_duration:.3f}s")
+            
+            final_video = final_video.subclip(0, target_duration)
+            final_video = final_video.set_audio(final_video.audio.subclip(0, target_duration))
         
     except Exception as e:
         print(f"Warning: Failed to create composite audio: {e}")
         print("Using only main audio track...")
-        # Fallback to main audio only
-        main_audio_safe = main_audio_clip.subclip(0, min(main_audio_clip.duration, final_video_duration))
-        main_audio_safe = main_audio_safe.set_duration(final_video_duration)
-        final_video = final_video.set_audio(main_audio_safe)
         
-        # Final sync check for fallback case
-        video_dur = final_video.duration
-        audio_dur = final_video.audio.duration
-        
-        if abs(video_dur - audio_dur) > 0.01:
-            print(f"Fallback duration mismatch: Video={video_dur:.3f}s, Audio={audio_dur:.3f}s")
+        # FALLBACK: Use main audio only with proper duration handling
+        try:
+            main_audio_safe = main_audio_clip.subclip(0, min(main_audio_clip.duration, final_video_duration))
+            main_audio_safe = main_audio_safe.set_duration(final_video_duration)
+            final_video = final_video.set_audio(main_audio_safe)
             
-            if video_dur > audio_dur:
-                final_video = final_video.subclip(0, audio_dur)
-            else:
-                final_video = final_video.set_audio(final_video.audio.subclip(0, video_dur))
+            # Final sync check for fallback case
+            video_dur = final_video.duration
+            audio_dur = final_video.audio.duration
+            
+            if abs(video_dur - audio_dur) > 0.1:
+                print(f"Fallback duration mismatch: Video={video_dur:.3f}s, Audio={audio_dur:.3f}s")
+                target_duration = min(video_dur, audio_dur)
+                final_video = final_video.subclip(0, target_duration)
+                final_video = final_video.set_audio(final_video.audio.subclip(0, target_duration))
+                
+        except Exception as fallback_error:
+            print(f"Critical error in fallback audio processing: {fallback_error}")
+            # Last resort: remove audio entirely
+            final_video = final_video.without_audio()
+            print("Warning: Video exported without audio due to processing errors")
 
-    # Export with standard settings
+    # Export with robust settings
     os.makedirs(output_directory, exist_ok=True)
     output_path = os.path.join(output_directory, f"final_video_{uuid.uuid4().hex[:8]}.mp4")
     print(f"Rendering video: {output_path}")
 
     try:
+        # FIXED: Use more conservative export settings to avoid audio processing issues
         final_video.write_videofile(
             output_path,
             codec="libx264",
             audio_codec="aac",
             fps=24,
             preset="medium",
-            threads=os.cpu_count(),
+            threads=min(4, os.cpu_count() or 1),  # Limit threads to avoid memory issues
             verbose=False,
-            logger=None
+            logger=None,
+            temp_audiofile='temp-audio.m4a',
+            remove_temp=True,
+            audio_bufsize=2000,  # Smaller buffer size to prevent overflow
+            audio_fps=44100,     # Standard audio sample rate
+            audio_nbytes=2       # Standard audio bit depth
         )
     except Exception as e:
         print(f"Error during video export: {e}")
-        # Try simpler export settings
+        # Try even more conservative settings
         print("Trying simplified export settings...")
-        final_video.write_videofile(
-            output_path,
-            codec="libx264",
-            audio_codec="aac",
-            fps=24,
-            preset="fast",
-            threads=1,
-            temp_audiofile='temp-audio.m4a',
-            remove_temp=True
-        )
+        try:
+            final_video.write_videofile(
+                output_path,
+                codec="libx264",
+                audio_codec="aac",
+                fps=24,
+                preset="fast",
+                threads=1,
+                temp_audiofile='temp-audio.m4a',
+                remove_temp=True,
+                audio_bufsize=1000,
+                audio_fps=22050,    # Lower sample rate
+                audio_nbytes=2
+            )
+        except Exception as final_error:
+            print(f"Final export attempt failed: {final_error}")
+            # Export without audio as last resort
+            print("Exporting video without audio...")
+            final_video_no_audio = final_video.without_audio()
+            final_video_no_audio.write_videofile(
+                output_path,
+                codec="libx264",
+                fps=24,
+                preset="fast",
+                threads=1
+            )
+            final_video_no_audio.close()
 
     # Cleanup resources
     try:

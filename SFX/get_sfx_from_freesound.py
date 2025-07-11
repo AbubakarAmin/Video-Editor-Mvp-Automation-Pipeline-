@@ -78,12 +78,12 @@ def get_valid_token():
 
 
 # 🔑 Single audio download function (same core logic, made robust)
-def download_top_sfx_for_tag(tag, output_dir, token):
+def download_top_sfx_for_tag(tag,minimum_length, output_dir, token):
     try:
         os.makedirs(output_dir, exist_ok=True)
 
         search_url = f"{API_BASE_URL}search/text/"
-        params = {"query": tag, "sort": "downloads_desc", "fields": "id,name,download"}
+        params = {"query": tag, "sort": "downloads_desc", "filter": f"duration:[{minimum_length} TO *]", "fields": "id,name,download"}
         headers = {"Authorization": f"Bearer {token}"}
 
         # Step 1: Search sound by tag
@@ -116,6 +116,15 @@ def download_top_sfx_for_tag(tag, output_dir, token):
     except Exception as e:
         print(f"[ERROR] Failed to download SFX for tag '{tag}': {e}")
         return None
+#to convert the time json video to actual seconds to specifiy minimum length of audio to be downloaded 
+def  time_to_seconds(t: str) -> float:
+    """Converts a time string (MM:SS or MM:SS.sss) to total seconds."""
+    try:
+        minutes, seconds = t.strip().split(":")
+        return int(minutes) * 60 + float(seconds)
+    except Exception as e:
+        raise ValueError(f"Invalid time format: '{t}'. Must be MM:SS or MM:SS.sss. Error: {e}")
+    
 
 
 # 🚀 Multithreaded bulk SFX download
@@ -128,9 +137,10 @@ def process_sfx_json_and_download(json_video, output_dir="Assets/Downloaded_SF",
 
     def download_worker(item):
         tag = item.search_tag_for_sfx_from_freesound
-        if not tag:
+        minimum_length=time_to_seconds(item.end_time)/2
+        if not tag and not minimum_length :
             return None
-        audio_path = download_top_sfx_for_tag(tag, output_dir, token)
+        audio_path = download_top_sfx_for_tag(tag,minimum_length, output_dir, token)
         if audio_path:
             item.search_tag_for_sfx_from_freesound = audio_path
             return item

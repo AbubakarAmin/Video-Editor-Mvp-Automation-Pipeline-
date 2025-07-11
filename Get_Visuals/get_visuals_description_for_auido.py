@@ -114,58 +114,15 @@ def get_visual(api_key: str, audio_file_path: str,orientation:str, visual_output
 - Provide **only one sound keyword** per scene.
 - Tag must be **short** — ideally **1 word**, maximum **2 words**.
 - DO NOT combine multiple sounds like `"rain, thunder"` — pick the **strongest or most relevant**.
+-Be musical in your sfx choices.
 - If no sound is needed, return an empty string: `""`.
 
 ✅ Good: `"thunder"`, `"typing"`, `"explosion"`, `"heartbeat"`, `"crackling"`  
 ❌ Bad: `"rain and thunder"`, `"soft piano in distance"`, `"crowd clapping and cheering"`
 
----
 
-🔹 Examples of `search_tags_on_pexels`:
-- "sunset over mountains"
-- "closeup of crying woman"
-- "people walking on street"
-- "car speeding on highway"
-- "man staring at horizon"
-- "city lights at night"
-- "battlefield explosion"
-- "student raising hand in class"
-- "hands typing on laptop"
-- "stormy ocean waves"
-- "child running through field"
-- "robot assembling in factory"
-- "old man sitting alone"
-- "hacker typing in dark room"
-- "mother hugging child"
-- "spacecraft launching into sky"
-- "fireworks in night sky"
-- "athlete crossing finish line"
-- "drone flying over desert"
-- "closeup of teardrop"
-- "broken mirror on floor"
-- "girl smiling through tears"
-- "lone figure walking in fog"
-- "silhouette against sunrise"
-- "hand letting go of balloon"
-- "angry man yelling in rain"
-- "books falling from shelf"
-- "zoom into eye"
-- "paper burning slowly"
 
----
-
-🔹 Examples of `search_tag_for_sfx_on_pixabay`:
-"footsteps", "gunshot", "thunder", "rain", "typing", "explosion", "heartbeat",  
-"swoosh", "applause", "clapping", "door", "creak", "birds", "wind", "fire", "crackling",  
-"scream", "laugh", "alarm", "engine", "siren", "whisper", "whoosh", "bark", "meow",  
-"growl", "glass", "splash", "drone", "sword", "clang", "beep", "ambient", "forest",  
-"piano", "strings", "clock", "riser", "flicker", "shutter", "roar", "echo", "bell",  
-"shot", "rumble", "buzz", "zap", "sizzle", "march", "train", "breathe", "click",  
-"strike", "boom", "drums", "chant", "tap"
-
----
-
-🎬 **Be cinematic, rhythmic, and immersive.** Your goal is to produce video cues and SFX that feel like a **professionally edited trailer or short film**, using emotionally resonant visuals and immersive sound design to amplify the storytelling.
+🎬 **Be cinematic, rhythmic, and immersive.** Your goal is to produce video cues and SFX that feel like a **professionally edited trailer or short film**, using emotionally resonant visuals and immersive sound design to amplify the storytelling keep a fast editing pace and  the final output json **MUST** be same length as provided audio and should be precise .
 """,
             myfile
         ],
