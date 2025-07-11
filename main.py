@@ -6,6 +6,15 @@ from Edit_Final_Video.edit_final_video import create_video_from_video_clips_and_
 from dotenv import load_dotenv
 import os
 load_dotenv()
+import sentry_sdk
+
+sentry_sdk.init(
+    dsn="https://7e15686187d622830eb6fc4abb2a4a38@o4509650995249152.ingest.de.sentry.io/4509651006062672",
+    # Add data like request headers and IP for users,
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=True,
+)
+division_by_zero = 1 / 0
 api_key=os.getenv("GEMINI_API_KEY") 
 audience=input("Target Audience: ")
 topic=input("Enter your topic : ")

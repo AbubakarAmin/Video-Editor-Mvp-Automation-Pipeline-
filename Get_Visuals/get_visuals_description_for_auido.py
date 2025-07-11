@@ -101,24 +101,28 @@ def get_visual(api_key: str, audio_file_path: str,orientation:str, visual_output
 
 🔹 Guidelines for `search_tags_on_pexels`:
 
-- DO NOT write full sentences. Use **short, specific, visual phrases only**.
-- Choose clips that are **cinematic, not generic** — prefer **emotionally rich, visually striking, or symbolic** shots.
-- Use keywords that imply **composition** or **camera movement** if needed: e.g. `"slow motion punch"`, `"aerial view of forest"`, `"closeup of crying woman"`.
-- Match the **emotional tone and energy** of the audio: sadness, awe, intensity, suspense, chaos, hope, etc.
-- Capture **metaphor or mood**, not just literal meaning. E.g., for "loss" you can use: `"empty chair"`, `"sunset over graveyard"`, `"old man looking out window"`.
+    - DO NOT write full sentences. Use **short, specific, visual phrases only**.
+    - Choose clips that are **cinematic, not generic** — prefer **emotionally rich, visually striking, or symbolic** shots.
+    - Use keywords that imply **composition** or **camera movement** if needed: e.g. `"slow motion punch"`, `"aerial view of forest"`, `"closeup of crying woman"`.
+    - Match the **emotional tone and energy** of the audio: sadness, awe, intensity, suspense, chaos, hope, etc.
+    - Capture **metaphor or mood**, not just literal meaning. E.g., for "loss" you can use: `"empty chair"`, `"sunset over graveyard"`, `"old man looking out window"`.
 
 ---
 
-🔹 Guidelines for `search_tag_for_sfx_on_pixabay`:
+🔹 Revised Guidelines for search_tag_for_sfx_on_pixabay:
+   
+   -Return only one keyword per scene — either a sound effect or a music style/instrument.
+   -Tags must be short — ideally 1 word, maximum 2 words.
+   -Prioritize musical elements (e.g., "tense piano", "uplifting strings", "lofi beat") over generic SFX if music better enhances the emotional tone or pacing.
+   -If no sound or music is needed, return an empty string: "".
+   -Do not combine multiple items (e.g., "rain and thunder", "piano and violin"). Choose the most relevant or emotionally powerful sound/music tag.
+   -Be atmospheric and emotionally aware. Use music to reflect mood, tone, or tempo when applicable.
 
-- Provide **only one sound keyword** per scene.
-- Tag must be **short** — ideally **1 word**, maximum **2 words**.
-- DO NOT combine multiple sounds like `"rain, thunder"` — pick the **strongest or most relevant**.
--Be musical in your sfx choices.
-- If no sound is needed, return an empty string: `""`.
-
-✅ Good: `"thunder"`, `"typing"`, `"explosion"`, `"heartbeat"`, `"crackling"`  
-❌ Bad: `"rain and thunder"`, `"soft piano in distance"`, `"crowd clapping and cheering"`
+✅ Good Tags:
+     Music: "cinematic strings", "sad piano", "lofi beat", "dark ambient"
+     SFX: "explosion", "typing", "footsteps", "heartbeat"
+❌ Bad Tags:
+     "rain and thunder", "emotional soft piano with violin", "crowd cheering and clapping", "scary dramatic music"
 
 
 
